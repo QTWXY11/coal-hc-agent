@@ -1,0 +1,4 @@
+sample_id,coal_type,ash_content,volatile_matter,carbon_content,pretreatment,carbonization_temp,carbonization_time,heating_rate,atmosphere,reversible_capacity,cycle_stability
+HC001,褐煤,5.2,48.3,68.5,酸洗,1300,2,5,Ar,302.5,>500
+HC002,烟煤,8.5,32.1,75.2,无,1400,1,10,Ar,311.4,>500
+HC003,无烟煤,3.1,9.8,85.6,碱洗,1500,0.5,15,Ar,328.6,>500
