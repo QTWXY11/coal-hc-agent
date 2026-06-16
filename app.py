@@ -49,7 +49,7 @@ df, feature_cols, scaler, model, vectorizer, index = load_data()
 def call_llm(prompt):
     api_key = st.secrets.get("API_KEY")
     base_url = st.secrets.get("BASE_URL", "https://api.siliconflow.cn/v1")
-    model_name = st.secrets.get("MODEL", "deepseek-ai/DeepSeek-V3")  # 使用稳定模型
+    model_name = st.secrets.get("MODEL", "deepseek-ai/DeepSeek-V3")
     
     if not api_key:
         return "⚠️ 未配置 API Key，请在 `.streamlit/secrets.toml` 中设置 `API_KEY`。"
@@ -75,17 +75,19 @@ def call_llm(prompt):
 
 # ========== 侧边栏输入 ==========
 st.sidebar.header("⚙️ 输入原料特性与目标")
+
+# 所有输入统一使用浮点数类型，step 也使用浮点数
 coal_type = st.sidebar.selectbox("煤种", df['coal_type'].unique())
-ash = st.sidebar.number_input("灰分 (%)", 0.0, 20.0, 8.0, step=0.1)
-volatile = st.sidebar.number_input("挥发分 (%)", 0.0, 50.0, 35.0, step=0.1)
-carbon_temp = st.sidebar.slider("碳化温度 (℃)", 800, 2000, 1300, step=10)
-hold_time = st.sidebar.slider("保温时间 (h)", 0.5, 5.0, 2.0, step=0.5)
-heating_rate = st.sidebar.slider("升温速率 (℃/min)", 1, 20, 5, step=1)
-activation_temp = st.sidebar.number_input("活化温度 (℃) 可选", 0, 1000, 0, step=10)
-activation_time = st.sidebar.number_input("活化时间 (h) 可选", 0, 6, 0, step=0.5)
-activator_ratio = st.sidebar.number_input("煤:活化剂质量比 可选", 0.0, 4.0, 0.0, step=0.5)
+ash = st.sidebar.number_input("灰分 (%)", min_value=0.0, max_value=20.0, value=8.0, step=0.1)
+volatile = st.sidebar.number_input("挥发分 (%)", min_value=0.0, max_value=50.0, value=35.0, step=0.1)
+carbon_temp = st.sidebar.number_input("碳化温度 (℃)", min_value=800.0, max_value=2000.0, value=1300.0, step=10.0)
+hold_time = st.sidebar.number_input("保温时间 (h)", min_value=0.5, max_value=5.0, value=2.0, step=0.5)
+heating_rate = st.sidebar.number_input("升温速率 (℃/min)", min_value=1.0, max_value=20.0, value=5.0, step=1.0)
+activation_temp = st.sidebar.number_input("活化温度 (℃) 可选", min_value=0.0, max_value=1000.0, value=0.0, step=10.0)
+activation_time = st.sidebar.number_input("活化时间 (h) 可选", min_value=0.0, max_value=6.0, value=0.0, step=0.5)
+activator_ratio = st.sidebar.number_input("煤:活化剂质量比 可选", min_value=0.0, max_value=4.0, value=0.0, step=0.5)
 pretreatment = st.sidebar.selectbox("预处理方式", ["酸洗", "碱洗", "氧化活化", "酸洗+海藻酸钠", "水蒸气活化", "CO2活化", "KOH活化"])
-target_cap = st.sidebar.number_input("目标容量 (mAh/g) 可选", 200, 500, 300, step=10)
+target_cap = st.sidebar.number_input("目标容量 (mAh/g) 可选", min_value=200.0, max_value=500.0, value=300.0, step=10.0)
 
 # ========== 主区域 ==========
 if st.sidebar.button("🚀 生成工艺方案", use_container_width=True):
@@ -143,7 +145,7 @@ if st.sidebar.button("🚀 生成工艺方案", use_container_width=True):
         col1.metric("机器学习预测可逆容量", f"{pred_capacity:.1f} mAh/g")
         col2.metric("最相似案例实际容量", f"{similar_df.iloc[0]['capacity']} mAh/g")
         
-        if target_cap:
+        if target_cap > 0:
             st.metric("与目标容量差距", f"{pred_capacity - target_cap:.1f} mAh/g")
         
         st.subheader("🔎 知识库中最相似的3个案例")
