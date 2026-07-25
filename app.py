@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
+import matplotlib
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.svm import SVR
 from sklearn.preprocessing import StandardScaler
@@ -15,42 +15,43 @@ import graphviz
 import warnings
 warnings.filterwarnings('ignore')
 
+# ========== ⭐ 中文字体配置（解决云端乱码） ==========
+# 方法一：尝试加载项目根目录下的 simhei.ttf 字体文件
+try:
+    from matplotlib.font_manager import FontProperties
+    # 如果项目根目录有 simhei.ttf，使用它
+    import os
+    if os.path.exists('simhei.ttf'):
+        font = FontProperties(fname='simhei.ttf')
+        matplotlib.rcParams['font.family'] = 'SimHei'
+    else:
+        # 否则尝试系统字体
+        matplotlib.rcParams['font.family'] = ['WenQuanYi Zen Hei', 'SimHei', 'Noto Sans CJK SC', 'DejaVu Sans']
+except:
+    matplotlib.rcParams['font.family'] = ['WenQuanYi Zen Hei', 'SimHei', 'Noto Sans CJK SC', 'DejaVu Sans']
+
+# 解决负号显示为方块的问题
+matplotlib.rcParams['axes.unicode_minus'] = False
+
 # ========== 页面配置 ==========
 st.set_page_config(page_title="煤基硬碳AI工艺智能体 v2.0", layout="wide")
 st.title("🏭 煤基硬碳合成工艺AI智能体 v2.0")
 st.markdown("**多模型集成预测 + RAG知识库检索 + 智能工艺优化 + 可视化分析 + 详细工艺流程图**")
 
-# ========== 参数名中英文映射表（用于图表标签） ==========
+# ========== 参数名中英文映射表 ==========
 PARAM_NAMES_CN = {
-    'ash': '灰分',
-    'volatile': '挥发分',
-    'fixed_carbon': '固定碳',
-    'carbon_content': '碳含量',
-    'hydrogen_content': '氢含量',
-    'oxygen_content': '氧含量',
-    'vitrinite_content': '镜质组含量',
-    'acid_concentration': '酸浓度',
-    'acid_temp': '酸洗温度',
-    'acid_time': '酸洗时间',
-    'preoxidation_temp': '预氧化温度',
-    'preoxidation_time': '预氧化时间',
-    'carbon_temp': '碳化终温',
-    'hold_time': '保温时间',
-    'heating_rate': '升温速率',
-    'activation_temp': '活化温度',
-    'activation_time': '活化时间',
-    'activator_ratio': '活化剂配比',
-    'd002': '层间距 d002',
-    'La': '微晶尺寸 La',
-    'Lc': '微晶尺寸 Lc',
-    'id_ig': '缺陷比 ID/IG',
-    'ssa': '比表面积',
-    'micropore_volume': '微孔孔容',
-    'capacity': '可逆容量',
-    'ice': '首次库伦效率'
+    'ash': '灰分', 'volatile': '挥发分', 'fixed_carbon': '固定碳',
+    'carbon_content': '碳含量', 'hydrogen_content': '氢含量', 'oxygen_content': '氧含量',
+    'vitrinite_content': '镜质组含量', 'acid_concentration': '酸浓度',
+    'acid_temp': '酸洗温度', 'acid_time': '酸洗时间',
+    'preoxidation_temp': '预氧化温度', 'preoxidation_time': '预氧化时间',
+    'carbon_temp': '碳化终温', 'hold_time': '保温时间', 'heating_rate': '升温速率',
+    'activation_temp': '活化温度', 'activation_time': '活化时间', 'activator_ratio': '活化剂配比',
+    'd002': '层间距 d002', 'La': '微晶尺寸 La', 'Lc': '微晶尺寸 Lc',
+    'id_ig': '缺陷比 ID/IG', 'ssa': '比表面积', 'micropore_volume': '微孔孔容',
+    'capacity': '可逆容量', 'ice': '首次库伦效率'
 }
 
-# 参数单位映射
 PARAM_UNITS = {
     'ash': ' (%)', 'volatile': ' (%)', 'fixed_carbon': ' (%)',
     'carbon_content': ' (%)', 'hydrogen_content': ' (%)', 'oxygen_content': ' (%)',
@@ -164,7 +165,7 @@ def rag_search(query, top_k=3):
     results = [df.iloc[idx] for idx in indices[0] if idx < len(df)]
     return results, distances
 
-# ========== 7. 可视化函数（全中文标签） ==========
+# ========== 7. 可视化函数 ==========
 def plot_parameter_trend(param_name, param_range, fixed_values, available_features):
     results = []
     for val in param_range:
@@ -178,12 +179,11 @@ def plot_parameter_trend(param_name, param_range, fixed_values, available_featur
     fig, ax = plt.subplots(figsize=(8, 4))
     ax.plot(df_plot['param'], df_plot['capacity'], 'o-', linewidth=2, markersize=6, color='#2E86AB')
     
-    # 中文标签
     param_cn = PARAM_NAMES_CN.get(param_name, param_name)
     unit = PARAM_UNITS.get(param_name, '')
-    ax.set_xlabel(f'{param_cn}{unit}', fontsize=12)
-    ax.set_ylabel('预测可逆容量 (mAh/g)', fontsize=12)
-    ax.set_title(f'{param_cn} 对容量的影响趋势', fontsize=14)
+    ax.set_xlabel(f'{param_cn}{unit}', fontsize=12, fontproperties='SimHei')
+    ax.set_ylabel('预测可逆容量 (mAh/g)', fontsize=12, fontproperties='SimHei')
+    ax.set_title(f'{param_cn} 对容量的影响趋势', fontsize=14, fontproperties='SimHei')
     ax.grid(True, alpha=0.3)
     return fig
 
@@ -264,7 +264,7 @@ def build_input_vector():
         else: input_dict[feat] = 0.0
     return [input_dict[f] for f in available_features]
 
-# ========== 10. 生成详细工艺步骤流程图 ==========
+# ========== 10. 生成工艺流程图 ==========
 def generate_process_flowchart():
     dot = graphviz.Digraph(comment='Process Flow', format='svg')
     dot.attr(rankdir='TB', splines='ortho', nodesep='0.6', ranksep='0.7')
@@ -273,7 +273,6 @@ def generate_process_flowchart():
     colors = {'原料': '#D4E9D4', '预处理': '#FFEAD6', '碳化': '#FED6D6', 
               '活化': '#E6D6F5', '后处理': '#D6E6F5', '性能': '#F5D6E6'}
     
-    # 步骤1: 原料准备
     raw_label = f'''【步骤1】原料准备\n
 煤种：{coal_type}（{coal_rank}）\n
 ● 灰分 {ash:.1f}%，挥发分 {volatile:.1f}%\n
@@ -281,7 +280,6 @@ def generate_process_flowchart():
 ● 目标：获得均质高碳前驱体'''
     dot.node('raw', raw_label, fillcolor=colors['原料'])
     
-    # 步骤2: 预处理
     pre_label = f'''【步骤2】预处理\n
 方式：{pretreatment}\n
 '''
@@ -302,7 +300,6 @@ def generate_process_flowchart():
     pre_label += '''\n● 目的：脱灰/引入官能团/调控交联'''
     dot.node('pre', pre_label, fillcolor=colors['预处理'])
     
-    # 步骤3: 碳化
     carbon_label = f'''【步骤3】碳化\n
 ● 终温：{carbon_temp:.0f}℃\n
 ● 保温：{hold_time:.1f}h\n
@@ -312,7 +309,6 @@ def generate_process_flowchart():
 ● 目标：形成无序碳骨架与初步微晶'''
     dot.node('carbon', carbon_label, fillcolor=colors['碳化'])
     
-    # 步骤4: 活化
     act_nodes = []
     if activation_method != '无' and activation_temp > 0:
         act_label = f'''【步骤4】活化\n
@@ -326,7 +322,6 @@ def generate_process_flowchart():
         dot.node('activation', act_label, fillcolor=colors['活化'])
         act_nodes.append('activation')
     
-    # 步骤5: 后处理
     post_label = f'''【步骤5】后处理\n
 ● 冷却方式：自然冷却（>2h）\n
 ● 建议：若需提高倍率，可考虑急冷\n
@@ -334,7 +329,6 @@ def generate_process_flowchart():
 ● 注意：避免吸潮与氧化'''
     dot.node('post', post_label, fillcolor=colors['后处理'])
     
-    # 步骤6: 产物
     product_label = f'''【步骤6】硬碳产物\n
 预期微观结构：
 ● d002：{d002:.3f} nm  (若输入)\n
@@ -344,7 +338,6 @@ def generate_process_flowchart():
 ● 闭孔：促进平台容量'''
     dot.node('product', product_label, fillcolor='#D6E6F5')
     
-    # 步骤7: 性能预测
     input_vec = build_input_vector()
     cap, _ = ensemble_predict(input_vec, available_features)
     perf_label = f'''【步骤7】电化学性能\n
@@ -458,13 +451,11 @@ with tab3:
         fig = plot_parameter_trend(visualize_param, param_range, fixed_values, available_features)
         st.pyplot(fig)
         
-        # 相关性热力图（中文标签）
         st.subheader("📊 参数相关性热力图")
         corr_cols = [f for f in available_features if f in df.columns] + ['capacity']
         if 'ice' in df.columns:
             corr_cols.append('ice')
         corr_df = df[corr_cols].corr()
-        # 替换列名为中文
         corr_df.rename(columns=PARAM_NAMES_CN, index=PARAM_NAMES_CN, inplace=True)
         fig2, ax2 = plt.subplots(figsize=(12, 10))
         sns.heatmap(corr_df, annot=True, fmt='.2f', cmap='coolwarm', ax=ax2)
