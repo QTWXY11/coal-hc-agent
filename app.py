@@ -20,6 +20,49 @@ st.set_page_config(page_title="煤基硬碳AI工艺智能体 v2.0", layout="wide
 st.title("🏭 煤基硬碳合成工艺AI智能体 v2.0")
 st.markdown("**多模型集成预测 + RAG知识库检索 + 智能工艺优化 + 可视化分析 + 详细工艺流程图**")
 
+# ========== 参数名中英文映射表（用于图表标签） ==========
+PARAM_NAMES_CN = {
+    'ash': '灰分',
+    'volatile': '挥发分',
+    'fixed_carbon': '固定碳',
+    'carbon_content': '碳含量',
+    'hydrogen_content': '氢含量',
+    'oxygen_content': '氧含量',
+    'vitrinite_content': '镜质组含量',
+    'acid_concentration': '酸浓度',
+    'acid_temp': '酸洗温度',
+    'acid_time': '酸洗时间',
+    'preoxidation_temp': '预氧化温度',
+    'preoxidation_time': '预氧化时间',
+    'carbon_temp': '碳化终温',
+    'hold_time': '保温时间',
+    'heating_rate': '升温速率',
+    'activation_temp': '活化温度',
+    'activation_time': '活化时间',
+    'activator_ratio': '活化剂配比',
+    'd002': '层间距 d002',
+    'La': '微晶尺寸 La',
+    'Lc': '微晶尺寸 Lc',
+    'id_ig': '缺陷比 ID/IG',
+    'ssa': '比表面积',
+    'micropore_volume': '微孔孔容',
+    'capacity': '可逆容量',
+    'ice': '首次库伦效率'
+}
+
+# 参数单位映射
+PARAM_UNITS = {
+    'ash': ' (%)', 'volatile': ' (%)', 'fixed_carbon': ' (%)',
+    'carbon_content': ' (%)', 'hydrogen_content': ' (%)', 'oxygen_content': ' (%)',
+    'vitrinite_content': ' (%)', 'acid_concentration': ' (mol/L)',
+    'acid_temp': ' (℃)', 'acid_time': ' (h)',
+    'preoxidation_temp': ' (℃)', 'preoxidation_time': ' (h)',
+    'carbon_temp': ' (℃)', 'hold_time': ' (h)', 'heating_rate': ' (℃/min)',
+    'activation_temp': ' (℃)', 'activation_time': ' (h)',
+    'd002': ' (nm)', 'La': ' (nm)', 'Lc': ' (nm)',
+    'ssa': ' (m²/g)', 'micropore_volume': ' (cm³/g)'
+}
+
 # ========== 完整特征列 ==========
 ALL_FEATURES = [
     'ash', 'volatile', 'fixed_carbon', 'carbon_content',
@@ -121,7 +164,7 @@ def rag_search(query, top_k=3):
     results = [df.iloc[idx] for idx in indices[0] if idx < len(df)]
     return results, distances
 
-# ========== 7. 可视化函数 ==========
+# ========== 7. 可视化函数（全中文标签） ==========
 def plot_parameter_trend(param_name, param_range, fixed_values, available_features):
     results = []
     for val in param_range:
@@ -134,9 +177,13 @@ def plot_parameter_trend(param_name, param_range, fixed_values, available_featur
     df_plot = pd.DataFrame(results)
     fig, ax = plt.subplots(figsize=(8, 4))
     ax.plot(df_plot['param'], df_plot['capacity'], 'o-', linewidth=2, markersize=6, color='#2E86AB')
-    ax.set_xlabel(param_name, fontsize=12)
+    
+    # 中文标签
+    param_cn = PARAM_NAMES_CN.get(param_name, param_name)
+    unit = PARAM_UNITS.get(param_name, '')
+    ax.set_xlabel(f'{param_cn}{unit}', fontsize=12)
     ax.set_ylabel('预测可逆容量 (mAh/g)', fontsize=12)
-    ax.set_title(f'{param_name} 对容量的影响趋势', fontsize=14)
+    ax.set_title(f'{param_cn} 对容量的影响趋势', fontsize=14)
     ax.grid(True, alpha=0.3)
     return fig
 
@@ -223,7 +270,6 @@ def generate_process_flowchart():
     dot.attr(rankdir='TB', splines='ortho', nodesep='0.6', ranksep='0.7')
     dot.attr('node', shape='box', style='rounded,filled', fontname='SimHei', width='4.5')
     
-    # 定义颜色
     colors = {'原料': '#D4E9D4', '预处理': '#FFEAD6', '碳化': '#FED6D6', 
               '活化': '#E6D6F5', '后处理': '#D6E6F5', '性能': '#F5D6E6'}
     
@@ -266,7 +312,7 @@ def generate_process_flowchart():
 ● 目标：形成无序碳骨架与初步微晶'''
     dot.node('carbon', carbon_label, fillcolor=colors['碳化'])
     
-    # 步骤4: 活化（如果启用）
+    # 步骤4: 活化
     act_nodes = []
     if activation_method != '无' and activation_temp > 0:
         act_label = f'''【步骤4】活化\n
@@ -308,7 +354,6 @@ def generate_process_flowchart():
 ● 建议：如需高倍率，优化活化条件'''
     dot.node('perf', perf_label, fillcolor=colors['性能'])
     
-    # 连接线（带箭头标注）
     dot.edge('raw', 'pre', label='研磨/筛分')
     dot.edge('pre', 'carbon', label='装炉/气氛')
     if act_nodes:
@@ -326,20 +371,16 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 智能预测", "📚 RAG知识检�
 
 # ---------- Tab 1: 智能预测 ----------
 with tab1:
-    # ⚠️ 按钮就在这里！位于 Tab1 内部
     if st.button("🚀 生成预测与工艺方案", use_container_width=True):
         with st.spinner("正在检索、预测并生成方案..."):
-            # TF-IDF 相似度检索
             user_text = f"煤种{coal_type} 灰分{ash}% 挥发分{volatile}% 碳化温度{carbon_temp}℃ 保温{hold_time}h 升温{heating_rate}℃/min"
             user_vec = vectorizer.transform([user_text]).toarray().astype(np.float32)
             distances, indices = index.search(user_vec, k=3)
             similar_df = df.iloc[indices[0]].copy()
             
-            # 多模型集成预测
             input_vec = build_input_vector()
             ensemble_pred, pred_dict = ensemble_predict(input_vec, available_features)
             
-            # 显示预测结果
             st.subheader("📊 多模型集成预测结果")
             col1, col2, col3, col4 = st.columns(4)
             col1.metric("🎯 集成预测容量", f"{ensemble_pred:.1f} mAh/g")
@@ -347,11 +388,9 @@ with tab1:
             col3.metric("🌳 GBDT", f"{pred_dict['GBDT']:.1f} mAh/g")
             col4.metric("📈 SVR", f"{pred_dict['SVR']:.1f} mAh/g")
             
-            # 相似案例
             st.subheader("🔎 TF-IDF 相似案例检索")
             st.dataframe(similar_df[['coal_type', 'ash', 'volatile', 'carbon_temp', 'hold_time', 'heating_rate', 'capacity', 'ice', 'pretreatment']])
             
-            # 大模型生成
             similar_text = ""
             for _, row in similar_df.iterrows():
                 similar_text += f"- {row['coal_type']}，灰分{row.get('ash','')}%，容量{row.get('capacity','')}mAh/g\n"
@@ -419,11 +458,14 @@ with tab3:
         fig = plot_parameter_trend(visualize_param, param_range, fixed_values, available_features)
         st.pyplot(fig)
         
+        # 相关性热力图（中文标签）
         st.subheader("📊 参数相关性热力图")
         corr_cols = [f for f in available_features if f in df.columns] + ['capacity']
         if 'ice' in df.columns:
             corr_cols.append('ice')
         corr_df = df[corr_cols].corr()
+        # 替换列名为中文
+        corr_df.rename(columns=PARAM_NAMES_CN, index=PARAM_NAMES_CN, inplace=True)
         fig2, ax2 = plt.subplots(figsize=(12, 10))
         sns.heatmap(corr_df, annot=True, fmt='.2f', cmap='coolwarm', ax=ax2)
         st.pyplot(fig2)
