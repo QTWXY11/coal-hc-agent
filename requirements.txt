@@ -4,3 +4,7 @@ numpy
 scikit-learn
 faiss-cpu
 requests
+matplotlib
+seaborn
+plotly
+sentence-transformers
