@@ -17,7 +17,7 @@ import warnings
 import os
 warnings.filterwarnings('ignore')
 
-# ========== 中文字体配置 ==========
+# ========== 中文字体配置（仅用于其他可能的中文，但图表已改为英文，此处保留以防万一） ==========
 def setup_chinese_font():
     try:
         if os.path.exists('simhei.ttf'):
@@ -36,29 +36,34 @@ st.set_page_config(page_title="煤基硬碳AI工艺智能体 v2.0", layout="wide
 st.title("🏭 煤基硬碳合成工艺AI智能体 v2.0")
 st.markdown("**多模型集成预测 + RAG知识库检索 + 智能工艺优化 + 可视化分析 + 详细工艺流程图**")
 
-# ========== 参数中英文映射 ==========
+# ========== 参数中英文映射（仅用于下拉菜单显示，图表使用英文） ==========
 PARAM_NAMES_CN = {
-    'ash': '灰分', 'volatile': '挥发分', 'fixed_carbon': '固定碳',
-    'carbon_content': '碳含量', 'hydrogen_content': '氢含量', 'oxygen_content': '氧含量',
-    'vitrinite_content': '镜质组含量', 'acid_concentration': '酸浓度',
-    'acid_temp': '酸洗温度', 'acid_time': '酸洗时间',
-    'preoxidation_temp': '预氧化温度', 'preoxidation_time': '预氧化时间',
-    'carbon_temp': '碳化终温', 'hold_time': '保温时间', 'heating_rate': '升温速率',
-    'activation_temp': '活化温度', 'activation_time': '活化时间', 'activator_ratio': '活化剂配比',
-    'd002': '层间距 d002', 'La': '微晶尺寸 La', 'Lc': '微晶尺寸 Lc',
-    'id_ig': '缺陷比 ID/IG', 'ssa': '比表面积', 'micropore_volume': '微孔孔容',
-    'capacity': '可逆容量', 'ice': '首次库伦效率'
-}
-PARAM_UNITS = {
-    'ash': ' (%)', 'volatile': ' (%)', 'fixed_carbon': ' (%)',
-    'carbon_content': ' (%)', 'hydrogen_content': ' (%)', 'oxygen_content': ' (%)',
-    'vitrinite_content': ' (%)', 'acid_concentration': ' (mol/L)',
-    'acid_temp': ' (℃)', 'acid_time': ' (h)',
-    'preoxidation_temp': ' (℃)', 'preoxidation_time': ' (h)',
-    'carbon_temp': ' (℃)', 'hold_time': ' (h)', 'heating_rate': ' (℃/min)',
-    'activation_temp': ' (℃)', 'activation_time': ' (h)',
-    'd002': ' (nm)', 'La': ' (nm)', 'Lc': ' (nm)',
-    'ssa': ' (m²/g)', 'micropore_volume': ' (cm³/g)'
+    'ash': '灰分',
+    'volatile': '挥发分',
+    'fixed_carbon': '固定碳',
+    'carbon_content': '碳含量',
+    'hydrogen_content': '氢含量',
+    'oxygen_content': '氧含量',
+    'vitrinite_content': '镜质组含量',
+    'acid_concentration': '酸浓度',
+    'acid_temp': '酸洗温度',
+    'acid_time': '酸洗时间',
+    'preoxidation_temp': '预氧化温度',
+    'preoxidation_time': '预氧化时间',
+    'carbon_temp': '碳化终温',
+    'hold_time': '保温时间',
+    'heating_rate': '升温速率',
+    'activation_temp': '活化温度',
+    'activation_time': '活化时间',
+    'activator_ratio': '活化剂配比',
+    'd002': '层间距 d002',
+    'La': '微晶尺寸 La',
+    'Lc': '微晶尺寸 Lc',
+    'id_ig': '缺陷比 ID/IG',
+    'ssa': '比表面积',
+    'micropore_volume': '微孔孔容',
+    'capacity': '可逆容量',
+    'ice': '首次库伦效率'
 }
 
 ALL_FEATURES = [
@@ -114,7 +119,7 @@ def build_rag_knowledge_base():
     return rag_index, texts
 rag_index, rag_texts = build_rag_knowledge_base()
 
-# ========== 大模型调用（增加篇幅要求） ==========
+# ========== 大模型调用 ==========
 def call_llm(prompt):
     api_key = st.secrets.get("API_KEY")
     base_url = st.secrets.get("BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
@@ -126,7 +131,7 @@ def call_llm(prompt):
         "model": model_name,
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.7,
-        "max_tokens": 2000  # 增加输出长度
+        "max_tokens": 2000
     }
     try:
         resp = requests.post(f"{base_url}/chat/completions", headers=headers, json=payload, timeout=90)
@@ -153,7 +158,7 @@ def rag_search(query, top_k=3):
     results = [df.iloc[idx] for idx in indices[0] if idx < len(df)]
     return results, distances
 
-# ========== 可视化 ==========
+# ========== 可视化函数（全部改为英文） ==========
 def plot_parameter_trend(param_name, param_range, fixed_values, available_features):
     results = []
     for val in param_range:
@@ -166,15 +171,13 @@ def plot_parameter_trend(param_name, param_range, fixed_values, available_featur
     df_plot = pd.DataFrame(results)
     fig, ax = plt.subplots(figsize=(8, 4))
     ax.plot(df_plot['param'], df_plot['capacity'], 'o-', linewidth=2, markersize=6, color='#2E86AB')
-    param_cn = PARAM_NAMES_CN.get(param_name, param_name)
-    unit = PARAM_UNITS.get(param_name, '')
-    ax.set_xlabel(f'{param_cn}{unit}', fontsize=12)
-    ax.set_ylabel('预测可逆容量 (mAh/g)', fontsize=12)
-    ax.set_title(f'{param_cn} 对容量的影响趋势', fontsize=14)
+    ax.set_xlabel(param_name, fontsize=12)
+    ax.set_ylabel('Predicted Reversible Capacity (mAh/g)', fontsize=12)
+    ax.set_title(f'Effect of {param_name} on Capacity', fontsize=14)
     ax.grid(True, alpha=0.3)
     return fig
 
-# ========== 侧边栏输入 ==========
+# ========== 侧边栏输入（中文） ==========
 st.sidebar.header("⚙️ 输入原料特性与目标")
 coal_type = st.sidebar.selectbox("煤种", df['coal_type'].unique())
 coal_rank = st.sidebar.selectbox("煤阶", ["低阶", "中阶", "高阶"])
@@ -244,34 +247,29 @@ def build_input_vector():
         else: input_dict[feat] = 0.0
     return [input_dict[f] for f in available_features]
 
-# ========== 生成分支流程图（带决策节点） ==========
+# ========== 生成分支流程图（中文不变） ==========
 def generate_process_flowchart():
     dot = graphviz.Digraph(comment='Process Flow', format='svg')
     dot.attr(rankdir='TB', splines='ortho', nodesep='0.8', ranksep='0.7')
     dot.attr('node', shape='box', style='rounded,filled', fontname='SimHei')
-    # 定义颜色
     colors = {'决策': '#FFF2CC', '原料': '#D4E9D4', '预处理': '#FFEAD6', '碳化': '#FED6D6', 
               '活化': '#E6D6F5', '后处理': '#D6E6F5', '产物': '#D6E6F5', '性能': '#F5D6E6'}
     
-    # 步骤1: 原料准备
     raw_label = f'''【步骤1】原料准备
 煤种：{coal_type}（{coal_rank}）
 灰分 {ash:.1f}%，挥发分 {volatile:.1f}%
 固定碳 {fixed_carbon:.1f}%，碳含量 {carbon_content:.1f}%'''
     dot.node('raw', raw_label, fillcolor=colors['原料'])
     
-    # 决策节点1: 灰分是否>5%？
     decision1 = '分选：灰分>5%？'
     dot.node('dec1', decision1, shape='diamond', style='filled', fillcolor=colors['决策'])
     dot.edge('raw', 'dec1', label='')
     
-    # 预处理分支1：低灰分（≤5%）——可简化或直接碳化
     pre_simple = f'''【低灰分路径】直接碳化
 （灰分≤5%，可省去脱灰）'''
     dot.node('pre_simple', pre_simple, fillcolor=colors['预处理'])
     dot.edge('dec1', 'pre_simple', label='是')
     
-    # 预处理分支2：高灰分（>5%）——需酸洗/碱洗
     pre_acid = f'''【高灰分路径】脱灰预处理
 方式：{pretreatment}
 '''
@@ -292,13 +290,11 @@ def generate_process_flowchart():
     dot.node('pre_acid', pre_acid, fillcolor=colors['预处理'])
     dot.edge('dec1', 'pre_acid', label='否')
     
-    # 合并节点
     pre_merge = '预处理完成'
     dot.node('pre_merge', pre_merge, shape='box', style='rounded,filled', fillcolor=colors['预处理'])
     dot.edge('pre_simple', 'pre_merge', label='')
     dot.edge('pre_acid', 'pre_merge', label='')
     
-    # 碳化
     carbon_label = f'''【碳化】
 终温：{carbon_temp:.0f}℃
 保温：{hold_time:.1f}h
@@ -307,13 +303,10 @@ def generate_process_flowchart():
     dot.node('carbon', carbon_label, fillcolor=colors['碳化'])
     dot.edge('pre_merge', 'carbon', label='')
     
-    # 决策节点2: 是否活化？
     if activation_method != '无' and activation_temp > 0:
         dec_act = '是否活化？'
         dot.node('dec_act', dec_act, shape='diamond', style='filled', fillcolor=colors['决策'])
         dot.edge('carbon', 'dec_act', label='')
-        
-        # 活化分支
         act_label = f'''【活化】
 方式：{activation_method}
 活化剂：{activator}
@@ -322,23 +315,17 @@ def generate_process_flowchart():
 配比：{activator_ratio:.1f}'''
         dot.node('act', act_label, fillcolor=colors['活化'])
         dot.edge('dec_act', 'act', label='是')
-        
-        # 无活化分支
         no_act = '跳过活化'
         dot.node('no_act', no_act, shape='box', style='rounded,filled', fillcolor=colors['碳化'])
         dot.edge('dec_act', 'no_act', label='否')
-        
-        # 合并
         act_merge = '碳化完成'
         dot.node('act_merge', act_merge, shape='box', style='rounded,filled', fillcolor=colors['碳化'])
         dot.edge('act', 'act_merge', label='')
         dot.edge('no_act', 'act_merge', label='')
         next_node = 'act_merge'
     else:
-        # 无活化决策
         next_node = 'carbon'
     
-    # 后处理
     post_label = f'''【后处理】
 冷却方式：自然冷却（>2h）
 建议：若需高倍率可急冷
@@ -346,7 +333,6 @@ def generate_process_flowchart():
     dot.node('post', post_label, fillcolor=colors['后处理'])
     dot.edge(next_node, 'post', label='')
     
-    # 产物
     product_label = f'''【硬碳产物】
 预期微观结构：
 d002：{d002:.3f} nm
@@ -356,7 +342,6 @@ ID/IG：{id_ig:.2f}
     dot.node('product', product_label, fillcolor=colors['产物'])
     dot.edge('post', 'product', label='')
     
-    # 性能预测
     input_vec = build_input_vector()
     cap, _ = ensemble_predict(input_vec, available_features)
     perf_label = f'''【电化学性能】
@@ -366,42 +351,32 @@ ID/IG：{id_ig:.2f}
 建议：如需高倍率，优化活化条件'''
     dot.node('perf', perf_label, fillcolor=colors['性能'])
     dot.edge('product', 'perf', label='电化学测试')
-    
     return dot
 
 # ========== 主界面 Tabs ==========
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 智能预测", "📚 RAG知识检索", "📈 可视化分析", "💡 工艺优化", "🗺️ 工艺流程图"])
 
-# ---------- Tab1: 智能预测（篇幅扩大） ----------
+# ---------- Tab1: 智能预测 ----------
 with tab1:
     if st.button("🚀 生成预测与工艺方案", use_container_width=True):
         with st.spinner("正在检索、预测并生成方案..."):
-            # 相似案例检索
             user_text = f"煤种{coal_type} 灰分{ash}% 挥发分{volatile}% 碳化温度{carbon_temp}℃ 保温{hold_time}h 升温{heating_rate}℃/min"
             user_vec = vectorizer.transform([user_text]).toarray().astype(np.float32)
             distances, indices = index.search(user_vec, k=3)
             similar_df = df.iloc[indices[0]].copy()
-            
-            # 预测
             input_vec = build_input_vector()
             ensemble_pred, pred_dict = ensemble_predict(input_vec, available_features)
-            
-            # 显示预测结果
             st.subheader("📊 多模型集成预测结果")
             col1, col2, col3, col4 = st.columns(4)
             col1.metric("🎯 集成预测容量", f"{ensemble_pred:.1f} mAh/g")
             col2.metric("🌲 随机森林", f"{pred_dict['RandomForest']:.1f} mAh/g")
             col3.metric("🌳 GBDT", f"{pred_dict['GBDT']:.1f} mAh/g")
             col4.metric("📈 SVR", f"{pred_dict['SVR']:.1f} mAh/g")
-            
             st.subheader("🔎 TF-IDF 相似案例检索")
             st.dataframe(similar_df[['coal_type', 'ash', 'volatile', 'carbon_temp', 'hold_time', 'heating_rate', 'capacity', 'ice', 'pretreatment']])
-            
-            # ===== 大模型生成（篇幅扩大） =====
             similar_text = ""
             for _, row in similar_df.iterrows():
                 similar_text += f"- {row['coal_type']}，灰分{row.get('ash','')}%，容量{row.get('capacity','')}mAh/g\n"
-            
             prompt = f"""你是一位煤基硬碳专家。请根据用户提供的参数和检索到的相似案例，生成一份详尽的工艺方案报告。
 
 用户参数：
@@ -454,11 +429,12 @@ with tab2:
         else:
             st.warning("请输入问题后再检索。")
 
-# ---------- Tab3: 可视化分析 ----------
+# ---------- Tab3: 可视化分析（图表已改为英文） ----------
 with tab3:
     st.subheader("📈 关键参数对容量的影响趋势")
     col1, col2 = st.columns(2)
     with col1:
+        # 下拉菜单仍显示中文
         param_display_map = {f: PARAM_NAMES_CN.get(f, f) for f in available_features}
         param_options = list(param_display_map.keys())
         visualize_param = st.selectbox(
@@ -484,13 +460,12 @@ with tab3:
         if 'ice' in df.columns:
             corr_cols.append('ice')
         corr_df = df[corr_cols].corr()
-        rename_dict = {k: PARAM_NAMES_CN.get(k, k) for k in corr_df.columns}
-        corr_df.rename(columns=rename_dict, index=rename_dict, inplace=True)
+        # 热力图行列名保持英文（不进行中文重命名）
         fig2, ax2 = plt.subplots(figsize=(12, 10))
         sns.heatmap(corr_df, annot=True, fmt='.2f', cmap='coolwarm', ax=ax2)
         st.pyplot(fig2)
 
-# ---------- Tab4: 工艺优化（篇幅扩大） ----------
+# ---------- Tab4: 工艺优化 ----------
 with tab4:
     st.subheader("💡 基于大模型的工艺优化建议")
     st.caption("输入当前工艺参数，系统将给出针对性的优化建议。")
@@ -498,7 +473,6 @@ with tab4:
         with st.spinner("正在生成优化建议..."):
             input_vec = build_input_vector()
             ensemble_pred, _ = ensemble_predict(input_vec, available_features)
-            
             opt_prompt = f"""你是一位煤基硬碳工艺优化专家。请根据当前工艺参数，生成一份详尽的优化建议报告（每条建议至少3点，总篇幅不少于500字）。
 
 当前工艺参数：
@@ -521,7 +495,7 @@ with tab4:
             opt_response = call_llm(opt_prompt)
             st.markdown(opt_response)
 
-# ---------- Tab5: 工艺流程图（带分支） ----------
+# ---------- Tab5: 工艺流程图 ----------
 with tab5:
     st.subheader("🗺️ 详细工艺步骤指导流程图（含分支决策）")
     st.caption("以下为根据当前输入参数生成的完整工艺指导流程，包含灰分判断和活化决策分支。")
