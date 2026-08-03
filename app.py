@@ -112,24 +112,48 @@ def load_data():
         if col not in df.columns:
             df[col] = None
 
-    # 获取实际可用的特征列
+    # 获取实际可用的特征列（仅数值列）
     available_features = [f for f in ALL_FEATURES if f in df.columns]
+
+    # 对数值列进行填充，如果全为 NaN 则填充 0
+    for col in numeric_cols:
+        if col in df.columns:
+            if df[col].isnull().all():
+                df[col] = 0.0
+            else:
+                df[col] = df[col].fillna(df[col].median())
 
     if len(df) < 2:
         st.error("❌ 数据文件中的样本数不足（至少需要2条记录），请补充数据。")
         st.stop()
 
-    # 使用中位数填充数值列
-    for col in numeric_cols:
-        if col in df.columns:
-            df[col] = df[col].fillna(df[col].median())
-
-    # 训练模型
+    # 准备特征矩阵 X
     X = df[available_features]
+
+    # 移除标准差为0的特征（常数列）
+    if X.shape[1] > 0:
+        std_vals = X.std()
+        constant_cols = std_vals[std_vals == 0].index.tolist()
+        if constant_cols:
+            st.warning(f"⚠️ 以下特征为常数列，将被移除：{constant_cols}")
+            X = X.drop(columns=constant_cols)
+            available_features = [f for f in available_features if f not in constant_cols]
+
+    # 检查是否还有特征
+    if X.shape[1] == 0:
+        st.error("❌ 没有有效的特征可用于训练，请检查数据。")
+        st.stop()
+
     y = df['capacity'].fillna(df['capacity'].median())
+
+    # 检查 y 是否有效
+    if y.isnull().all():
+        st.error("❌ 目标列 'capacity' 全部缺失，无法训练模型。")
+        st.stop()
 
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
+
     rf = RandomForestRegressor(n_estimators=100, max_depth=10, random_state=42)
     gbdt = GradientBoostingRegressor(n_estimators=100, learning_rate=0.1, max_depth=6, random_state=42)
     svr = SVR(kernel='rbf', C=1.0, epsilon=0.1)
