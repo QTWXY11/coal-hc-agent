@@ -17,7 +17,7 @@ import warnings
 import os
 warnings.filterwarnings('ignore')
 
-# ========== 中文字体配置（仅用于其他可能的中文，但图表已改为英文，此处保留以防万一） ==========
+# ========== 中文字体配置 ==========
 def setup_chinese_font():
     try:
         if os.path.exists('simhei.ttf'):
@@ -36,34 +36,18 @@ st.set_page_config(page_title="煤基硬碳AI工艺智能体 v2.0", layout="wide
 st.title("🏭 煤基硬碳合成工艺AI智能体 v2.0")
 st.markdown("**多模型集成预测 + RAG知识库检索 + 智能工艺优化 + 可视化分析 + 详细工艺流程图**")
 
-# ========== 参数中英文映射（仅用于下拉菜单显示，图表使用英文） ==========
+# ========== 参数中英文映射（仅用于下拉菜单显示） ==========
 PARAM_NAMES_CN = {
-    'ash': '灰分',
-    'volatile': '挥发分',
-    'fixed_carbon': '固定碳',
-    'carbon_content': '碳含量',
-    'hydrogen_content': '氢含量',
-    'oxygen_content': '氧含量',
-    'vitrinite_content': '镜质组含量',
-    'acid_concentration': '酸浓度',
-    'acid_temp': '酸洗温度',
-    'acid_time': '酸洗时间',
-    'preoxidation_temp': '预氧化温度',
-    'preoxidation_time': '预氧化时间',
-    'carbon_temp': '碳化终温',
-    'hold_time': '保温时间',
-    'heating_rate': '升温速率',
-    'activation_temp': '活化温度',
-    'activation_time': '活化时间',
-    'activator_ratio': '活化剂配比',
-    'd002': '层间距 d002',
-    'La': '微晶尺寸 La',
-    'Lc': '微晶尺寸 Lc',
-    'id_ig': '缺陷比 ID/IG',
-    'ssa': '比表面积',
-    'micropore_volume': '微孔孔容',
-    'capacity': '可逆容量',
-    'ice': '首次库伦效率'
+    'ash': '灰分', 'volatile': '挥发分', 'fixed_carbon': '固定碳',
+    'carbon_content': '碳含量', 'hydrogen_content': '氢含量', 'oxygen_content': '氧含量',
+    'vitrinite_content': '镜质组含量', 'acid_concentration': '酸浓度',
+    'acid_temp': '酸洗温度', 'acid_time': '酸洗时间',
+    'preoxidation_temp': '预氧化温度', 'preoxidation_time': '预氧化时间',
+    'carbon_temp': '碳化终温', 'hold_time': '保温时间', 'heating_rate': '升温速率',
+    'activation_temp': '活化温度', 'activation_time': '活化时间', 'activator_ratio': '活化剂配比',
+    'd002': '层间距 d002', 'La': '微晶尺寸 La', 'Lc': '微晶尺寸 Lc',
+    'id_ig': '缺陷比 ID/IG', 'ssa': '比表面积', 'micropore_volume': '微孔孔容',
+    'capacity': '可逆容量', 'ice': '首次库伦效率'
 }
 
 ALL_FEATURES = [
@@ -158,7 +142,7 @@ def rag_search(query, top_k=3):
     results = [df.iloc[idx] for idx in indices[0] if idx < len(df)]
     return results, distances
 
-# ========== 可视化函数（全部改为英文） ==========
+# ========== 可视化函数（英文） ==========
 def plot_parameter_trend(param_name, param_range, fixed_values, available_features):
     results = []
     for val in param_range:
@@ -177,10 +161,35 @@ def plot_parameter_trend(param_name, param_range, fixed_values, available_featur
     ax.grid(True, alpha=0.3)
     return fig
 
-# ========== 侧边栏输入（中文） ==========
+# ========== 辅助函数：带“其他”选项的选择框 ==========
+def select_with_other(label, options, default_index=0, key_prefix=""):
+    """
+    创建一个包含“其他”选项的选择框，当选择“其他”时显示文本输入框。
+    返回最终用户选择的值。
+    """
+    # 确保“其他”在选项中（如果不存在则追加）
+    if "其他" not in options:
+        options = list(options) + ["其他"]
+    selected = st.sidebar.selectbox(label, options, index=default_index, key=f"{key_prefix}_select")
+    if selected == "其他":
+        other_val = st.sidebar.text_input(f"请输入{label}", key=f"{key_prefix}_other", placeholder="输入自定义值")
+        # 如果用户未输入，则返回空字符串，但我们可以给个默认提示
+        final_val = other_val if other_val.strip() != "" else "自定义"
+    else:
+        final_val = selected
+    return final_val
+
+# ========== 侧边栏输入 ==========
 st.sidebar.header("⚙️ 输入原料特性与目标")
-coal_type = st.sidebar.selectbox("煤种", df['coal_type'].unique())
+
+# ----- 煤种（带“其他”手动输入） -----
+coal_type_options = ["褐煤", "烟煤", "无烟煤", "长焰煤", "次烟煤"]
+coal_type = select_with_other("煤种", coal_type_options, default_index=1, key_prefix="coal_type")
+
+# ----- 煤阶（固定选项，无需“其他”） -----
 coal_rank = st.sidebar.selectbox("煤阶", ["低阶", "中阶", "高阶"])
+
+# ----- 数值参数（不变） -----
 ash = st.sidebar.number_input("灰分 (%)", 0.0, 30.0, 8.0, step=0.1)
 volatile = st.sidebar.number_input("挥发分 (%)", 0.0, 55.0, 35.0, step=0.1)
 fixed_carbon = st.sidebar.number_input("固定碳 (%)", 0.0, 100.0, 57.0, step=0.1)
@@ -188,24 +197,46 @@ carbon_content = st.sidebar.number_input("碳含量 (%)", 0.0, 100.0, 75.0, step
 hydrogen_content = st.sidebar.number_input("氢含量 (%)", 0.0, 10.0, 4.8, step=0.1)
 oxygen_content = st.sidebar.number_input("氧含量 (%)", 0.0, 30.0, 15.0, step=0.1)
 vitrinite_content = st.sidebar.number_input("镜质组含量 (%)", 0.0, 100.0, 60.0, step=0.1)
+
 st.sidebar.markdown("---")
-pretreatment = st.sidebar.selectbox("预处理方式", ["无", "酸洗", "碱洗", "氧化活化", "酸洗+海藻酸钠", "水蒸气活化", "CO2活化", "KOH活化"])
+
+# ----- 预处理方式（带“无”和“其他”） -----
+pretreatment_options = ["无", "酸洗", "碱洗", "氧化活化", "酸洗+海藻酸钠", "水蒸气活化", "CO2活化", "KOH活化"]
+# 确保“无”和“其他”存在（已包含“无”）
+pretreatment = select_with_other("预处理方式", pretreatment_options, default_index=0, key_prefix="pretreatment")
+
+# ----- 预处理数值参数（不变） -----
 acid_concentration = st.sidebar.number_input("酸浓度 (mol/L) 可选", 0.0, 10.0, 4.0, step=0.1)
 acid_temp = st.sidebar.number_input("酸洗温度 (℃) 可选", 0.0, 150.0, 80.0, step=1.0)
 acid_time = st.sidebar.number_input("酸洗时间 (h) 可选", 0.0, 24.0, 12.0, step=0.5)
 preoxidation_temp = st.sidebar.number_input("预氧化温度 (℃) 可选", 0.0, 500.0, 0.0, step=5.0)
 preoxidation_time = st.sidebar.number_input("预氧化时间 (h) 可选", 0.0, 10.0, 0.0, step=0.5)
+
 st.sidebar.markdown("---")
+
+# ----- 碳化工艺（不变） -----
 carbon_temp = st.sidebar.number_input("碳化终温 (℃)", 800.0, 2000.0, 1300.0, step=10.0)
 hold_time = st.sidebar.number_input("保温时间 (h)", 0.5, 6.0, 2.0, step=0.5)
 heating_rate = st.sidebar.number_input("升温速率 (℃/min)", 1.0, 20.0, 5.0, step=1.0)
+
 st.sidebar.markdown("---")
-activation_method = st.sidebar.selectbox("活化方式", ["无", "物理活化", "化学活化"])
-activator = st.sidebar.selectbox("活化剂种类", ["无", "KOH", "CO2", "水蒸气", "海藻酸钠"])
+
+# ----- 活化方式（带“无”和“其他”） -----
+activation_method_options = ["无", "物理活化", "化学活化"]
+activation_method = select_with_other("活化方式", activation_method_options, default_index=0, key_prefix="activation_method")
+
+# ----- 活化剂种类（带“无”和“其他”） -----
+activator_options = ["无", "KOH", "CO2", "水蒸气", "海藻酸钠"]
+activator = select_with_other("活化剂种类", activator_options, default_index=0, key_prefix="activator")
+
+# ----- 活化数值参数（不变） -----
 activation_temp = st.sidebar.number_input("活化温度 (℃) 可选", 0.0, 1200.0, 0.0, step=10.0)
 activation_time = st.sidebar.number_input("活化时间 (h) 可选", 0.0, 6.0, 0.0, step=0.5)
 activator_ratio = st.sidebar.number_input("活化剂配比 (煤:活化剂) 可选", 0.0, 5.0, 0.0, step=0.5)
+
 st.sidebar.markdown("---")
+
+# ----- 微观结构（可选） -----
 use_structure = st.sidebar.checkbox("输入微观结构数据（可选）", value=False)
 if use_structure:
     d002 = st.sidebar.number_input("d002 层间距 (nm)", 0.35, 0.45, 0.375, step=0.001)
@@ -214,9 +245,11 @@ if use_structure:
     id_ig = st.sidebar.number_input("ID/IG 缺陷比", 0.5, 2.0, 1.0, step=0.01)
     ssa = st.sidebar.number_input("比表面积 (m²/g)", 0.0, 500.0, 120.0, step=1.0)
     micropore_volume = st.sidebar.number_input("微孔孔容 (cm³/g)", 0.0, 1.0, 0.12, step=0.001)
+
 st.sidebar.markdown("---")
 target_cap = st.sidebar.number_input("目标容量 (mAh/g) 可选", 200.0, 500.0, 300.0, step=10.0)
 
+# ========== 构造输入向量（使用最终值） ==========
 def build_input_vector():
     input_dict = {}
     for feat in available_features:
@@ -247,7 +280,7 @@ def build_input_vector():
         else: input_dict[feat] = 0.0
     return [input_dict[f] for f in available_features]
 
-# ========== 生成分支流程图（中文不变） ==========
+# ========== 生成分支流程图 ==========
 def generate_process_flowchart():
     dot = graphviz.Digraph(comment='Process Flow', format='svg')
     dot.attr(rankdir='TB', splines='ortho', nodesep='0.8', ranksep='0.7')
@@ -399,11 +432,33 @@ with tab1:
             st.subheader("📋 大模型生成工艺方案")
             st.markdown(llm_response)
 
-# ---------- Tab2: RAG 知识检索 ----------
+# ---------- Tab2: RAG 知识检索（增加快速提问按钮） ----------
 with tab2:
     st.subheader("📚 语义检索增强（RAG）")
     st.caption("输入自然语言问题，系统将从文献知识库中语义检索相关内容，并由大模型生成答案。")
-    rag_query = st.text_input("请输入您的问题", placeholder="例如：海藻酸钠造孔对煤基硬碳性能有什么影响？")
+    
+    # 快速提问按钮（点击后自动填充输入框并检索）
+    st.markdown("**快速提问（点击即可自动填充并检索）：**")
+    col_q1, col_q2 = st.columns(2)
+    with col_q1:
+        if st.button("🔍 海藻酸钠造孔对煤基硬碳性能的影响"):
+            st.session_state.rag_query = "海藻酸钠造孔对煤基硬碳性能有什么影响？"
+        if st.button("🔍 碳化温度对层间距和容量的影响"):
+            st.session_state.rag_query = "碳化温度对硬碳层间距和容量有何影响？"
+        if st.button("🔍 酸洗预处理能否提高首次库伦效率"):
+            st.session_state.rag_query = "酸洗预处理能否提高煤基硬碳的首次库伦效率？"
+    with col_q2:
+        if st.button("🔍 活化造孔对倍率性能的影响机制"):
+            st.session_state.rag_query = "活化造孔对煤基硬碳倍率性能的影响机制是什么？"
+        if st.button("🔍 煤种变质程度对储钠性能的影响"):
+            st.session_state.rag_query = "煤种变质程度对硬碳储钠性能的影响规律？"
+        if st.button("🔍 升温速率如何优化缺陷结构"):
+            st.session_state.rag_query = "如何通过调控升温速率优化硬碳的缺陷结构？"
+    
+    # 输入框，默认值从 session_state 获取
+    default_query = st.session_state.get("rag_query", "")
+    rag_query = st.text_input("请输入您的问题", value=default_query, placeholder="例如：海藻酸钠造孔对煤基硬碳性能有什么影响？")
+    
     if st.button("🔍 检索知识库", use_container_width=True):
         if rag_query:
             with st.spinner("正在检索知识库并生成回答..."):
@@ -429,12 +484,11 @@ with tab2:
         else:
             st.warning("请输入问题后再检索。")
 
-# ---------- Tab3: 可视化分析（图表已改为英文） ----------
+# ---------- Tab3: 可视化分析 ----------
 with tab3:
     st.subheader("📈 关键参数对容量的影响趋势")
     col1, col2 = st.columns(2)
     with col1:
-        # 下拉菜单仍显示中文
         param_display_map = {f: PARAM_NAMES_CN.get(f, f) for f in available_features}
         param_options = list(param_display_map.keys())
         visualize_param = st.selectbox(
@@ -460,7 +514,6 @@ with tab3:
         if 'ice' in df.columns:
             corr_cols.append('ice')
         corr_df = df[corr_cols].corr()
-        # 热力图行列名保持英文（不进行中文重命名）
         fig2, ax2 = plt.subplots(figsize=(12, 10))
         sns.heatmap(corr_df, annot=True, fmt='.2f', cmap='coolwarm', ax=ax2)
         st.pyplot(fig2)
