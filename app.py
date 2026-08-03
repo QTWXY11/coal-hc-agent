@@ -37,7 +37,7 @@ st.set_page_config(page_title="煤基硬碳AI工艺智能体 v2.0", layout="wide
 st.title("🏭 煤基硬碳合成工艺AI智能体 v2.0")
 st.markdown("**多模型集成预测 + RAG知识库检索 + 智能工艺优化 + 可视化分析 + 详细工艺流程图**")
 
-# ========== 参数中英文映射 ==========
+# ========== 参数中英文映射（用于可视化） ==========
 PARAM_NAMES_CN = {
     'ash': '灰分', 'volatile': '挥发分', 'fixed_carbon': '固定碳',
     'carbon_content': '碳含量', 'hydrogen_content': '氢含量', 'oxygen_content': '氧含量',
@@ -59,9 +59,25 @@ ALL_FEATURES = [
     'd002', 'La', 'Lc', 'id_ig', 'ssa', 'micropore_volume'
 ]
 
-# ========== 数据加载（自动生成示例数据） ==========
+# ========== 数据加载 ==========
 @st.cache_resource
 def load_data():
+    df = None
+    try:
+        df = pd.read_csv("data.csv", encoding='utf-8-sig')
+        st.info("✅ 已加载 data.csv")
+    except FileNotFoundError:
+        try:
+            df = pd.read_excel("煤基硬碳负极材料数据库 .xlsx", sheet_name="实验数据库", header=1)
+            st.info("✅ 已加载 Excel 文件")
+        except Exception as e:
+            st.error(f"❌ 未找到数据文件，请确保 data.csv 或 Excel 文件存在。\n错误详情：{e}")
+            st.stop()
+    except Exception as e:
+        st.error(f"❌ 读取 data.csv 失败，请检查文件格式是否正确。\n错误详情：{e}")
+        st.stop()
+
+    # 确保所有必需的列都存在
     required_columns = [
         'sample_id', 'coal_type', 'coal_rank', 'ash', 'volatile', 'fixed_carbon',
         'carbon_content', 'hydrogen_content', 'oxygen_content', 'vitrinite_content',
@@ -71,59 +87,11 @@ def load_data():
         'd002', 'La', 'Lc', 'id_ig', 'ssa', 'micropore_volume',
         'capacity', 'ice', 'rate_performance', 'cycle_stability', 'cycle_retention'
     ]
-
-    try:
-        df = pd.read_csv("data.csv")
-        st.info("✅ 已加载 data.csv")
-    except FileNotFoundError:
-        try:
-            df = pd.read_excel("煤基硬碳负极材料数据库 .xlsx", sheet_name="实验数据库", header=1)
-            st.info("✅ 已加载 Excel 文件")
-        except:
-            sample_data = {
-                'sample_id': ['S001', 'S002', 'S003', 'S004', 'S005'],
-                'coal_type': ['褐煤', '烟煤', '无烟煤', '长焰煤', '褐煤'],
-                'coal_rank': ['低阶', '中阶', '高阶', '低阶', '低阶'],
-                'ash': [5.41, 8.50, 3.10, 6.20, 4.80],
-                'volatile': [40.43, 32.10, 9.80, 38.50, 45.20],
-                'fixed_carbon': [54.16, 59.40, 87.10, 55.30, 50.00],
-                'carbon_content': [69.58, 75.20, 85.60, 70.20, 68.00],
-                'hydrogen_content': [6.68, 4.80, 3.50, 5.00, 5.50],
-                'oxygen_content': [21.19, 15.20, 6.80, 20.50, 23.00],
-                'vitrinite_content': [0, 62, 10, 45, 30],
-                'pretreatment': ['浮选脱灰', '酸洗', '碱洗', '氧化活化', '酸洗+海藻酸钠'],
-                'pretreatment_detail': ['', '4mol/L HCl', '1mol/L NaOH', '200℃空气', '海藻酸钠'],
-                'pretreatment_temp': [0, 80, 80, 200, 80],
-                'pretreatment_time': [0, 12, 6, 2, 12],
-                'carbon_temp': [1400, 1300, 1500, 1350, 1400],
-                'hold_time': [2, 2, 2, 1.5, 2],
-                'heating_rate': [5, 5, 10, 8, 5],
-                'atmosphere': ['Ar', 'Ar', 'Ar', 'Ar', 'Ar'],
-                'activation_method': ['无', '无', '无', '无', '活化'],
-                'activator': ['无', '无', '无', '无', '海藻酸钠'],
-                'activation_temp': [0, 0, 0, 0, 750],
-                'activation_time': [0, 0, 0, 0, 1],
-                'activator_ratio': [0, 0, 0, 0, 2],
-                'd002': [0.371, 0.379, 0.375, 0.377, 0.375],
-                'La': [0, 2.48, 2.50, 2.55, 2.60],
-                'Lc': [0, 0.82, 0.88, 0.90, 0.85],
-                'id_ig': [1.85, 1.02, 0.98, 1.05, 1.31],
-                'ssa': [4.92, 150, 110, 135, 120],
-                'micropore_volume': [0, 0.12, 0.08, 0.14, 0.18],
-                'capacity': [275, 302.5, 280.0, 315.0, 323.0],
-                'ice': [77, 82.8, 80.0, 81.5, 91.0],
-                'rate_performance': [111, 235.7, 220.0, 245.0, 280.0],
-                'cycle_stability': [200, 500, 500, 600, 800],
-                'cycle_retention': [96, 95, 92, 95, 96]
-            }
-            df = pd.DataFrame(sample_data)
-            df.to_csv("data.csv", index=False, encoding='utf-8-sig')
-            st.warning("⚠️ 未找到数据文件，已自动生成示例 data.csv，请替换为真实数据。")
-    
     for col in required_columns:
         if col not in df.columns:
             df[col] = None
-    
+
+    # 将数值列转换为数字类型
     numeric_cols = ['ash', 'volatile', 'fixed_carbon', 'carbon_content', 'hydrogen_content',
                    'oxygen_content', 'vitrinite_content', 'pretreatment_temp', 'pretreatment_time',
                    'carbon_temp', 'hold_time', 'heating_rate', 'activation_temp', 'activation_time',
@@ -132,11 +100,19 @@ def load_data():
     for col in numeric_cols:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors='coerce')
-    
+
+    # 获取实际可用的特征列
     available_features = [f for f in ALL_FEATURES if f in df.columns]
+
+    # 检查数据量
+    if len(df) < 2:
+        st.error("❌ 数据文件中的样本数不足（至少需要2条记录），请补充数据。")
+        st.stop()
+
+    # 训练模型
     X = df[available_features].fillna(df[available_features].median())
     y = df['capacity'].fillna(df['capacity'].median())
-    
+
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
     rf = RandomForestRegressor(n_estimators=100, max_depth=10, random_state=42)
@@ -146,20 +122,33 @@ def load_data():
     gbdt.fit(X_scaled, y)
     svr.fit(X_scaled, y)
     models = {'RandomForest': rf, 'GBDT': gbdt, 'SVR': svr}
-    
+
+    # 构建文本描述（用于RAG和TF-IDF检索）
     df['text_desc'] = df.apply(lambda row:
         f"煤种{row.get('coal_type','')} 灰分{row.get('ash','')}% 挥发分{row.get('volatile','')}% "
         f"碳化温度{row.get('carbon_temp','')}℃ 保温{row.get('hold_time','')}h 升温{row.get('heating_rate','')}℃/min "
         f"预处理{row.get('pretreatment','')} 容量{row.get('capacity','')}mAh/g", axis=1)
-    
+
     vectorizer = TfidfVectorizer()
     text_vectors = vectorizer.fit_transform(df['text_desc']).toarray().astype(np.float32)
     index = faiss.IndexFlatL2(text_vectors.shape[1])
     index.add(text_vectors)
-    
-    return df, available_features, scaler, models, vectorizer, index
 
-df, available_features, scaler, models, vectorizer, index = load_data()
+    # 提取各类选项（用于侧边栏下拉菜单）
+    coal_type_options = df['coal_type'].dropna().unique().tolist()
+    coal_rank_options = df['coal_rank'].dropna().unique().tolist()
+    pretreatment_options = df['pretreatment'].dropna().unique().tolist()
+    atmosphere_options = df['atmosphere'].dropna().unique().tolist()
+    activation_method_options = df['activation_method'].dropna().unique().tolist()
+    activator_options = df['activator'].dropna().unique().tolist()
+
+    return (df, available_features, scaler, models, vectorizer, index,
+            coal_type_options, coal_rank_options, pretreatment_options,
+            atmosphere_options, activation_method_options, activator_options)
+
+(df, available_features, scaler, models, vectorizer, index,
+ coal_type_options, coal_rank_options, pretreatment_options,
+ atmosphere_options, activation_method_options, activator_options) = load_data()
 
 # ========== Sentence Embedding ==========
 @st.cache_resource
@@ -229,24 +218,16 @@ def plot_parameter_trend(param_name, param_range, fixed_values, available_featur
     df_plot = pd.DataFrame(results)
     fig, ax = plt.subplots(figsize=(8, 4))
     ax.plot(df_plot['param'], df_plot['capacity'], 'o-', linewidth=2, markersize=6, color='#2E86AB')
-    ax.set_xlabel(param_name, fontsize=12)
-    ax.set_ylabel('Predicted Reversible Capacity (mAh/g)', fontsize=12)
-    ax.set_title(f'Effect of {param_name} on Capacity', fontsize=14)
+    param_cn = PARAM_NAMES_CN.get(param_name, param_name)
+    ax.set_xlabel(param_cn, fontsize=12)
+    ax.set_ylabel('预测可逆容量 (mAh/g)', fontsize=12)
+    ax.set_title(f'{param_cn} 对容量的影响趋势', fontsize=14)
     ax.grid(True, alpha=0.3)
     return fig
 
-# ========== 辅助函数 ==========
-def select_with_none_and_other_simple(label, options, default_index=0, key_prefix=""):
-    opt_list = ["无"] + list(options) + ["其他"]
-    selected = st.sidebar.selectbox(label, opt_list, index=default_index, key=f"{key_prefix}_select")
-    if selected == "其他":
-        other_val = st.sidebar.text_input(f"请输入{label}", key=f"{key_prefix}_other", placeholder="输入自定义值")
-        final_val = other_val if other_val.strip() != "" else "自定义"
-    else:
-        final_val = selected
-    return final_val
-
+# ========== 辅助函数：带“其他”选项的选择框 ==========
 def select_with_other(label, options, default_index=0, key_prefix=""):
+    """只提供“其他”选项（用于煤种等必须选择的字段）"""
     opt_list = list(options) + ["其他"]
     selected = st.sidebar.selectbox(label, opt_list, index=default_index, key=f"{key_prefix}_select")
     if selected == "其他":
@@ -256,15 +237,28 @@ def select_with_other(label, options, default_index=0, key_prefix=""):
         final_val = selected
     return final_val
 
-# ========== 侧边栏输入 ==========
+def select_with_none_and_other(label, options, default_index=0, key_prefix=""):
+    """提供“无”和“其他”选项（用于预处理、活化等）"""
+    opt_list = ["无"] + list(options) + ["其他"]
+    selected = st.sidebar.selectbox(label, opt_list, index=default_index, key=f"{key_prefix}_select")
+    if selected == "其他":
+        other_val = st.sidebar.text_input(f"请输入{label}", key=f"{key_prefix}_other", placeholder="输入自定义值")
+        final_val = other_val if other_val.strip() != "" else "自定义"
+    else:
+        final_val = selected
+    return final_val
+
+# ========== 侧边栏输入（选项从数据中动态加载） ==========
 st.sidebar.header("⚙️ 输入原料特性与目标")
 st.sidebar.caption("选择“无”时，关联的数值将自动设为 0")
 
-coal_type_options = ["褐煤", "烟煤", "无烟煤", "长焰煤", "次烟煤"]
-coal_type = select_with_other("煤种", coal_type_options, default_index=1, key_prefix="coal_type")
+# 煤种（必须选，无“无”选项）
+coal_type = select_with_other("煤种", coal_type_options, default_index=0, key_prefix="coal_type")
 
-coal_rank = select_with_none_and_other_simple("煤阶", ["低阶", "中阶", "高阶"], default_index=0, key_prefix="coal_rank")
+# 煤阶（有“无”和“其他”）
+coal_rank = select_with_none_and_other("煤阶", coal_rank_options, default_index=0, key_prefix="coal_rank")
 
+# 数值参数
 ash = st.sidebar.number_input("灰分 (%)", 0.0, 100.0, 8.0, step=0.1)
 volatile = st.sidebar.number_input("挥发分 (%)", 0.0, 100.0, 35.0, step=0.1)
 fixed_carbon = st.sidebar.number_input("固定碳 (%)", 0.0, 100.0, 57.0, step=0.1)
@@ -275,8 +269,8 @@ vitrinite_content = st.sidebar.number_input("镜质组含量 (%)", 0.0, 100.0, 6
 
 st.sidebar.markdown("---")
 
-pretreatment_options = ["酸洗", "碱洗", "氧化活化", "浮选脱灰", "酸洗+碱溶酸析", "水蒸气活化", "CO2活化", "KOH活化"]
-pretreatment = select_with_none_and_other_simple("预处理方式", pretreatment_options, default_index=1, key_prefix="pretreatment")
+# 预处理方式（有“无”和“其他”）
+pretreatment = select_with_none_and_other("预处理方式", pretreatment_options, default_index=0, key_prefix="pretreatment")
 pretreatment_temp = st.sidebar.number_input("预处理温度 (℃) 可选", 0.0, 500.0, 0.0, step=1.0)
 if pretreatment == "无":
     pretreatment_temp = 0.0
@@ -286,14 +280,16 @@ if pretreatment == "无":
 
 st.sidebar.markdown("---")
 
+# 碳化工艺
 carbon_temp = st.sidebar.number_input("碳化终温 (℃)", 0.0, 2000.0, 1300.0, step=10.0)
 hold_time = st.sidebar.number_input("保温时间 (h)", 0.0, 6.0, 2.0, step=0.5)
 heating_rate = st.sidebar.number_input("升温速率 (℃/min)", 0.0, 20.0, 5.0, step=1.0)
-atmosphere = select_with_none_and_other_simple("碳化气氛", ["Ar", "N₂", "空气", "真空"], default_index=0, key_prefix="atmosphere")
+atmosphere = select_with_none_and_other("碳化气氛", atmosphere_options, default_index=0, key_prefix="atmosphere")
 
 st.sidebar.markdown("---")
 
-activation_method = select_with_none_and_other_simple("活化方式", ["物理活化", "化学活化"], default_index=0, key_prefix="activation_method")
+# 活化方式（有“无”和“其他”）
+activation_method = select_with_none_and_other("活化方式", activation_method_options, default_index=0, key_prefix="activation_method")
 activation_temp = st.sidebar.number_input("活化温度 (℃) 可选", 0.0, 1200.0, 0.0, step=10.0)
 if activation_method == "无":
     activation_temp = 0.0
@@ -303,12 +299,13 @@ if activation_method == "无":
 activator_ratio = st.sidebar.number_input("活化剂配比 (煤:活化剂) 可选", 0.0, 5.0, 0.0, step=0.5)
 if activation_method == "无":
     activator_ratio = 0.0
-activator = select_with_none_and_other_simple("活化剂种类", ["KOH", "CO2", "水蒸气", "海藻酸钠", "H₂S", "硫磺", "NaCl模板", "CaCO₃模板"], default_index=0, key_prefix="activator")
+activator = select_with_none_and_other("活化剂种类", activator_options, default_index=0, key_prefix="activator")
 if activation_method == "无":
     activator = "无"
 
 st.sidebar.markdown("---")
 
+# 微观结构（可选）
 use_structure = st.sidebar.checkbox("输入微观结构数据（可选）", value=False)
 if use_structure:
     d002 = st.sidebar.number_input("d002 层间距 (nm)", 0.35, 0.45, 0.375, step=0.001)
