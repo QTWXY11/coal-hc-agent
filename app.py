@@ -244,7 +244,7 @@ def rag_search(query, top_k=3):
     results = [df.iloc[idx] for idx in indices[0] if idx < len(df)]
     return results, distances
 
-# ========== 可视化函数 ==========
+# ========== 可视化函数（图表标签改为英文） ==========
 def plot_parameter_trend(param_name, param_range, fixed_values, available_features):
     results = []
     for val in param_range:
@@ -257,10 +257,10 @@ def plot_parameter_trend(param_name, param_range, fixed_values, available_featur
     df_plot = pd.DataFrame(results)
     fig, ax = plt.subplots(figsize=(8, 4))
     ax.plot(df_plot['param'], df_plot['capacity'], 'o-', linewidth=2, markersize=6, color='#2E86AB')
-    param_cn = PARAM_NAMES_CN.get(param_name, param_name)
-    ax.set_xlabel(param_cn, fontsize=12)
-    ax.set_ylabel('预测可逆容量 (mAh/g)', fontsize=12)
-    ax.set_title(f'{param_cn} 对容量的影响趋势', fontsize=14)
+    # 英文标签
+    ax.set_xlabel(param_name, fontsize=12)
+    ax.set_ylabel('Capacity (mAh/g)', fontsize=12)
+    ax.set_title(f'Effect of {param_name} on Capacity', fontsize=14)
     ax.grid(True, alpha=0.3)
     return fig
 
