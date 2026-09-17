@@ -52,7 +52,7 @@ OPTIONAL_FEATURES = [
 # ========== 1. 数据加载与模型训练 ==========
 @st.cache_resource
 def load_data():
-    df = pd.read_csv("data.csv")
+    df = pd.read_csv("data.csv", encoding='gbk', on_bad_lines='skip')
     
     # 只使用数据中实际存在的列
     available_features = [f for f in ALL_FEATURES if f in df.columns]
