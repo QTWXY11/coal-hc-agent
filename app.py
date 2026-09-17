@@ -69,26 +69,34 @@ STANDARD_COLUMNS = [
     'capacity', 'ice', 'rate_performance', 'cycle_stability', 'cycle_retention'
 ]
 
-# ========== 智能列名映射 ==========
+# ========== 智能列名映射（防重复） ==========
 def normalize_columns(df):
-    """将中文/带说明的列名映射为标准英文列名"""
+    """将中文/带说明的列名映射为标准英文列名，并防止产生重复列名"""
     rename_map = {}
+    used_std_cols = set()
     for col in df.columns:
         col_str = str(col).strip()
         col_lower = col_str.lower()
         matched = None
         for std_col in STANDARD_COLUMNS:
-            # 完全匹配
+            if std_col in used_std_cols:
+                continue
             if col_lower == std_col.lower():
                 matched = std_col
                 break
-            # 包含匹配（如 "capacity：可逆容量（mAh/g）" 包含 "capacity"）
             if std_col.lower() in col_lower:
                 matched = std_col
                 break
         if matched:
             rename_map[col] = matched
-    return df.rename(columns=rename_map)
+            used_std_cols.add(matched)
+    df = df.rename(columns=rename_map)
+    # 双重保险：去重任何剩余重复列
+    if df.columns.duplicated().any():
+        duplicated_names = df.columns[df.columns.duplicated()].tolist()
+        st.warning(f"⚠️ 检测到重复列名，已自动去重：{duplicated_names}")
+        df = df.loc[:, ~df.columns.duplicated()]
+    return df
 
 # ========== 数据加载（终极健壮版） ==========
 @st.cache_resource
@@ -108,7 +116,6 @@ def load_data():
             continue
 
     if raw_df is None:
-        # CSV 读不了就试 Excel
         try:
             df = pd.read_excel("智能体数据库.xlsx", sheet_name="实验数据库", header=1)
             st.info(f"✅ 已加载 Excel 文件，共 {len(df)} 条记录")
@@ -123,7 +130,6 @@ def load_data():
             if 'sample_id' in row_str:
                 header_row = i
                 break
-        # 用正确的表头重新读取
         try:
             df = pd.read_csv("data.csv", encoding=used_encoding, on_bad_lines='skip', header=header_row)
             st.info(f"✅ 已加载 data.csv（编码：{used_encoding}，表头行：第{header_row+1}行），共 {len(df)} 条记录")
@@ -143,31 +149,37 @@ def load_data():
     if missing_cols:
         st.warning(f"⚠️ 以下列缺失，将自动补齐：{missing_cols}")
 
-    # ---- 步骤4：数值列转换 ----
     numeric_cols = ['ash', 'volatile', 'fixed_carbon', 'carbon_content', 'hydrogen_content',
                    'oxygen_content', 'vitrinite_content', 'pretreatment_temp', 'pretreatment_time',
                    'carbon_temp', 'hold_time', 'heating_rate', 'activation_temp', 'activation_time',
                    'activator_ratio', 'd002', 'La', 'Lc', 'id_ig', 'ssa', 'micropore_volume',
                    'capacity', 'ice', 'cycle_retention']
 
-    # 补齐缺失列
     for col in STANDARD_COLUMNS:
         if col not in df.columns:
             df[col] = '无' if col not in numeric_cols else 0.0
 
     for col in numeric_cols:
         if col in df.columns:
+            s = df[col]
+            if isinstance(s, pd.DataFrame):
+                s = s.iloc[:, 0]
+                df[col] = s
             df[col] = pd.to_numeric(df[col], errors='coerce')
 
-    # ---- 步骤5：分类列空值处理 ----
+    # ---- 步骤4：分类列空值处理（防重复列） ----
     categorical_cols = ['coal_type', 'coal_rank', 'pretreatment', 'atmosphere',
                         'activation_method', 'activator']
     for col in categorical_cols:
         if col in df.columns:
+            s = df[col]
+            if isinstance(s, pd.DataFrame):
+                s = s.iloc[:, 0]
+                df[col] = s
             df[col] = df[col].fillna('无').astype(str).str.strip()
             df[col] = df[col].replace('', '无').replace('nan', '无')
 
-    # ---- 步骤6：数值列填充 ----
+    # ---- 步骤5：数值列填充 ----
     for col in numeric_cols:
         if col in df.columns:
             if df[col].isnull().all():
@@ -175,7 +187,7 @@ def load_data():
             else:
                 df[col] = df[col].fillna(df[col].median())
 
-    # ---- 步骤7：capacity 列检查 ----
+    # ---- 步骤6：capacity 列检查 ----
     if 'capacity' not in df.columns:
         st.error("❌ 数据中找不到 'capacity'（可逆容量）列。请检查 data.csv 的表头。")
         st.stop()
@@ -183,11 +195,9 @@ def load_data():
         st.error("❌ 数据样本少于 2 条，无法训练模型。")
         st.stop()
 
-    # ---- 步骤8：训练模型 ----
+    # ---- 步骤7：训练模型 ----
     available_features = [f for f in ALL_FEATURES if f in df.columns]
     X = df[available_features].copy()
-
-    # 移除常数列
     std_vals = X.std()
     constant_cols = std_vals[std_vals == 0].index.tolist()
     if constant_cols:
@@ -215,18 +225,18 @@ def load_data():
     svr.fit(X_scaled, y)
     models = {'RandomForest': rf, 'GBDT': gbdt, 'SVR': svr}
 
-    # ---- 步骤9：构建文本描述 ----
+    # ---- 步骤8：构建文本描述 ----
     df['text_desc'] = df.apply(lambda row:
         f"煤种{row.get('coal_type','')} 灰分{row.get('ash','')}% 挥发分{row.get('volatile','')}% "
         f"碳化温度{row.get('carbon_temp','')}℃ 保温{row.get('hold_time','')}h 升温{row.get('heating_rate','')}℃/min "
         f"预处理{row.get('pretreatment','')} 容量{row.get('capacity','')}mAh/g", axis=1)
 
     vectorizer = TfidfVectorizer()
-    text_vectors = vectorizer.fit_transform(df['text_desc']).toarray().astype(np.float32)
+    text_vectors = vectorizer.fit_transform(df['text_desc']).astype(np.float32).toarray()
     index = faiss.IndexFlatL2(text_vectors.shape[1])
     index.add(text_vectors)
 
-    # ---- 步骤10：提取下拉选项 ----
+    # ---- 步骤9：提取下拉选项 ----
     coal_type_options = sorted([str(x) for x in df['coal_type'].dropna().unique().tolist() if str(x) != '无'])
     coal_rank_options = sorted([str(x) for x in df['coal_rank'].dropna().unique().tolist() if str(x) != '无'])
     pretreatment_options = sorted([str(x) for x in df['pretreatment'].dropna().unique().tolist() if str(x) != '无'])
@@ -234,10 +244,9 @@ def load_data():
     activation_method_options = sorted([str(x) for x in df['activation_method'].dropna().unique().tolist() if str(x) != '无'])
     activator_options = sorted([str(x) for x in df['activator'].dropna().unique().tolist() if str(x) != '无'])
 
-    # 保底：如果选项为空，给默认值
     if not coal_type_options: coal_type_options = ['褐煤', '烟煤', '无烟煤']
     if not coal_rank_options: coal_rank_options = ['低阶', '中阶', '高阶']
-    if not pretreatment_options: pretreatment_options = ['无', '酸洗', '碱洗']
+    if not pretreatment_options: pretreatment_options = ['酸洗', '碱洗', '浮选脱灰']
     if not atmosphere_options: atmosphere_options = ['Ar', 'N₂']
     if not activation_method_options: activation_method_options = ['无']
     if not activator_options: activator_options = ['无']
@@ -555,7 +564,7 @@ with tab1:
     if st.button("🚀 生成预测与工艺方案", use_container_width=True):
         with st.spinner("正在检索、预测并生成方案..."):
             user_text = f"煤种{coal_type} 灰分{ash}% 挥发分{volatile}% 碳化温度{carbon_temp}℃ 保温{hold_time}h 升温{heating_rate}℃/min"
-            user_vec = vectorizer.transform([user_text]).toarray().astype(np.float32)
+            user_vec = vectorizer.transform([user_text]).astype(np.float32).toarray()
             distances, indices = index.search(user_vec, k=3)
             similar_df = df.iloc[indices[0]].copy()
             input_vec = build_input_vector()
